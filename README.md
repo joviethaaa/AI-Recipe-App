@@ -20,6 +20,12 @@ The project was developed as a group Artificial Intelligence course project.
   <img src="docs/screenshots/search.png" width="900" alt="Search Screen" />
 </p>
 
+### Favorites
+
+<p align="center">
+  <img src="docs/screenshots/favorites.png" width="900" alt="Favorites Screen" />
+</p>
+
 ## Features
 
 - Recipe discovery
