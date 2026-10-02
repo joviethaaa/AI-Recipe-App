@@ -8,6 +8,12 @@ The project was developed as a group Artificial Intelligence course project.
 
 ---
 
+## App Preview
+
+<p align="center">
+  <img src="docs/screenshots/home.png" width="900" alt="Home Screen" />
+</p>
+
 ## Features
 
 - Recipe discovery
