@@ -14,6 +14,12 @@ The project was developed as a group Artificial Intelligence course project.
   <img src="docs/screenshots/home.png" width="900" alt="Home Screen" />
 </p>
 
+### Search
+
+<p align="center">
+  <img src="docs/screenshots/search.png" width="900" alt="Search Screen" />
+</p>
+
 ## Features
 
 - Recipe discovery
