@@ -55,17 +55,16 @@ The project was developed as a group Artificial Intelligence course project.
 ## Project Architecture
 
 ```text
-React Native / Expo
-        |
-        v
-Node.js + Express
-   |           |
-   v           v
-Neon DB     Python ML
-                |
-                v
-        meal_classifier.pkl
-
-        |
-        v
-    TheMealDB API
+                TheMealDB API
+                     │
+                     ▼
+             React Native / Expo
+                     │
+                     ▼
+             Node.js + Express
+                │           │
+                ▼           ▼
+             Neon DB     Python ML
+                            │
+                            ▼
+                   meal_classifier.pkl
