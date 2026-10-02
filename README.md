@@ -75,7 +75,15 @@ The project was developed as a group Artificial Intelligence course project.
 - TheMealDB
 
 ---
+## How to Run the Project
+### 1. Clone Repository
 
+```bash
+git clone https://github.com/joviethaaa/AI-Recipe-App.git
+cd AI-Recipe-App
+
+
+---
 ## Project Architecture
 
 ```text
