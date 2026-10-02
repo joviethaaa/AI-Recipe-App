@@ -1,24 +1,71 @@
-<h1 align="center">Kelompok 7 AI</h1>
+## About the Project
 
-## Anggota Kelompok:
-1. Ayundini Nursyahrin A. M. (NIM: 2802535686)
-2. Felicia Pardamean (NIM: 2802544873)
-3. Hani Huwaida Arista (NIM: 2802547862)
-4. Jovita Niken A. P. (NIM: 2802542262)
-5. Silva Yunisa N. (NIM: 2802537142)
+AI Recipe App is a cross-platform recipe discovery application built with React Native and Expo.
 
-## Run the Backend
+The application integrates recipe data from TheMealDB, a Node.js and Express backend, PostgreSQL with Drizzle ORM, and a Python machine learning model for meal classification.
 
-```bash
-cd backend
-npm install
-npm run dev
-```
+The project was developed as a group Artificial Intelligence course project.
 
-## Run the App
+---
 
-```bash
-cd mobile
-npm install
-npx expo start --web
-```
+## Features
+
+- Recipe discovery
+- Search recipes by name
+- Filter recipes by category
+- View recipe details
+- Save favorite recipes
+- Remove favorite recipes
+- Store favorites in PostgreSQL
+- AI-based meal classification
+- Personalized meal planning interface
+- Cross-platform support with Expo
+
+---
+
+## Tech Stack
+
+### Mobile
+- React Native
+- Expo
+- Expo Router
+- Axios
+
+### Backend
+- Node.js
+- Express.js
+- Python Shell
+
+### Database
+- PostgreSQL
+- Neon
+- Drizzle ORM
+
+### Machine Learning
+- Python
+- Pandas
+- Scikit-learn
+- Joblib
+
+### External API
+- TheMealDB
+
+---
+
+## Project Architecture
+
+```text
+React Native / Expo
+        |
+        v
+Node.js + Express
+   |           |
+   v           v
+Neon DB     Python ML
+                |
+                v
+        meal_classifier.pkl
+
+        |
+        v
+    TheMealDB API
