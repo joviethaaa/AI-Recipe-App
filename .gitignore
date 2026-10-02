@@ -1,0 +1,19 @@
+# dependencies
+node_modules/
+
+# environment variables
+.env
+.env.*
+
+# build files
+build/
+dist/
+
+# react native
+.gradle/
+android/build/
+ios/build/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
