@@ -26,10 +26,10 @@ The project was developed as a group Artificial Intelligence course project.
   <img src="docs/screenshots/favorites.png" width="900" alt="Favorites Screen" />
 </p>
 
-### Calender
+### Calendar
 
 <p align="center">
-  <img src="docs/screenshots/calender.png" width="900" alt="Calender Screen" />
+  <img src="docs/screenshots/calendar.png" width="900" alt="Calendar Screen" />
 </p>
 
 ## Features
