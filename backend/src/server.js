@@ -5,23 +5,33 @@ import { favoritesTable } from "./db/schema.js";
 import { and, eq } from "drizzle-orm";
 import job from "./config/cron.js";
 import { PythonShell } from "python-shell";
-import bodyParser from "body-parser";
 import cors from "cors";
 
 const app = express();
 const PORT = ENV.PORT || 5001;
 
+// Middleware
 app.use(cors());
 app.use(express.json());
-app.use(bodyParser.json());
 
+// Jalankan cron hanya di production
 if (ENV.NODE_ENV === "production") {
   job.start();
 }
 
+// ==============================
+// HEALTH CHECK
+// ==============================
+
 app.get("/api/health", (req, res) => {
-  res.status(200).json({ success: true });
+  res.status(200).json({
+    success: true,
+  });
 });
+
+// ==============================
+// ADD FAVORITE
+// ==============================
 
 app.post("/api/favorites", async (req, res) => {
   try {
@@ -33,11 +43,27 @@ app.post("/api/favorites", async (req, res) => {
       });
     }
 
+    const parsedRecipeId = Number(recipeId);
+
+    if (!Number.isInteger(parsedRecipeId)) {
+      return res.status(400).json({
+        error: "recipeId harus berupa angka",
+      });
+    }
+
+    // Ambil detail recipe dari TheMealDB
     const response = await fetch(
-      `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${recipeId}`
+      `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${parsedRecipeId}`
     );
 
+    if (!response.ok) {
+      return res.status(502).json({
+        error: "Gagal mengambil data recipe dari TheMealDB",
+      });
+    }
+
     const data = await response.json();
+
     const recipe = data.meals?.[0];
 
     if (!recipe) {
@@ -46,20 +72,29 @@ app.post("/api/favorites", async (req, res) => {
       });
     }
 
+    // Hitung jumlah ingredient
     const ingredientCount = Array.from({ length: 20 }).reduce(
-      (acc, _, i) => {
-        const ingredient = recipe[`strIngredient${i + 1}`];
+      (count, _, index) => {
+        const ingredient =
+          recipe[`strIngredient${index + 1}`];
 
-        return ingredient && ingredient.trim() !== ""
-          ? acc + 1
-          : acc;
+        if (
+          ingredient &&
+          ingredient.trim() !== ""
+        ) {
+          return count + 1;
+        }
+
+        return count;
       },
       0
     );
 
+    // Hitung panjang instruction
     const instructionLength =
       recipe.strInstructions?.length || 0;
 
+    // Keyword sederhana untuk kategori favorite
     const heavyKeywords = [
       "chicken",
       "beef",
@@ -86,7 +121,8 @@ app.post("/api/favorites", async (req, res) => {
       "sandwich",
     ];
 
-    const titleLower = recipe.strMeal.toLowerCase();
+    const titleLower =
+      recipe.strMeal.toLowerCase();
 
     let category = "makanan_berat";
 
@@ -104,11 +140,12 @@ app.post("/api/favorites", async (req, res) => {
       category = "makanan_berat";
     }
 
+    // Simpan ke Neon PostgreSQL
     const newFavorite = await db
       .insert(favoritesTable)
       .values({
         userId,
-        recipeId,
+        recipeId: parsedRecipeId,
         title: recipe.strMeal,
         image: recipe.strMealThumb,
         cookTime: recipe.strTime || null,
@@ -119,129 +156,225 @@ app.post("/api/favorites", async (req, res) => {
       })
       .returning();
 
-    res.status(201).json(newFavorite[0]);
+    return res.status(201).json(
+      newFavorite[0]
+    );
   } catch (error) {
-    console.error("Error adding favorite:", error);
+    console.error(
+      "Error adding favorite:",
+      error
+    );
 
-    res.status(500).json({
+    return res.status(500).json({
       error: "Something went wrong",
     });
   }
 });
 
-app.get("/api/favorites/:userId", async (req, res) => {
-  try {
-    const { userId } = req.params;
+// ==============================
+// GET FAVORITES
+// ==============================
 
-    const userFavorites = await db
-      .select()
-      .from(favoritesTable)
-      .where(eq(favoritesTable.userId, userId));
-
-    res.status(200).json(userFavorites);
-  } catch (error) {
-    console.error("Error fetching favorites:", error);
-
-    res.status(500).json({
-      error: "Something went wrong",
-    });
-  }
-});
-
-app.delete(
-  "/api/favorites/:userId/:recipeId",
+app.get(
+  "/api/favorites/:userId",
   async (req, res) => {
     try {
-      const { userId, recipeId } = req.params;
+      const { userId } = req.params;
 
-      await db
-        .delete(favoritesTable)
-        .where(
-          and(
-            eq(favoritesTable.userId, userId),
+      const userFavorites =
+        await db
+          .select()
+          .from(favoritesTable)
+          .where(
             eq(
-              favoritesTable.recipeId,
-              parseInt(recipeId)
+              favoritesTable.userId,
+              userId
             )
-          )
-        );
+          );
 
-      res.status(200).json({
-        message: "Favorite removed successfully",
-      });
+      return res.status(200).json(
+        userFavorites
+      );
     } catch (error) {
-      console.error("Error removing favorite:", error);
+      console.error(
+        "Error fetching favorites:",
+        error
+      );
 
-      res.status(500).json({
+      return res.status(500).json({
         error: "Something went wrong",
       });
     }
   }
 );
 
-app.post("/predict", async (req, res) => {
-  const {
-    ingredient_count,
-    instruction_length,
-  } = req.body;
+// ==============================
+// DELETE FAVORITE
+// ==============================
 
-  console.log("Predict request:", {
-    ingredient_count,
-    instruction_length,
-  });
+app.delete(
+  "/api/favorites/:userId/:recipeId",
+  async (req, res) => {
+    try {
+      const {
+        userId,
+        recipeId,
+      } = req.params;
 
-  if (
-    ingredient_count === undefined ||
-    instruction_length === undefined
-  ) {
-    return res.status(400).json({
-      error:
-        "ingredient_count dan instruction_length wajib diisi",
-    });
+      const parsedRecipeId =
+        Number(recipeId);
+
+      if (
+        !Number.isInteger(
+          parsedRecipeId
+        )
+      ) {
+        return res.status(400).json({
+          error:
+            "recipeId harus berupa angka",
+        });
+      }
+
+      await db
+        .delete(favoritesTable)
+        .where(
+          and(
+            eq(
+              favoritesTable.userId,
+              userId
+            ),
+            eq(
+              favoritesTable.recipeId,
+              parsedRecipeId
+            )
+          )
+        );
+
+      return res.status(200).json({
+        message:
+          "Favorite removed successfully",
+      });
+    } catch (error) {
+      console.error(
+        "Error removing favorite:",
+        error
+      );
+
+      return res.status(500).json({
+        error: "Something went wrong",
+      });
+    }
   }
+);
 
-  try {
-    const results = await PythonShell.run(
-      "ml/predict.py",
+// ==============================
+// MACHINE LEARNING PREDICTION
+// ==============================
+
+app.post(
+  "/predict",
+  async (req, res) => {
+    const {
+      ingredient_count,
+      instruction_length,
+    } = req.body;
+
+    console.log(
+      "Predict request:",
       {
-        args: [
-          ingredient_count,
-          instruction_length,
-        ],
+        ingredient_count,
+        instruction_length,
       }
     );
 
-    console.log("Python results:", results);
-
-    const prediction =
-      results?.[0]?.trim();
-
     if (
-      prediction !== "0" &&
-      prediction !== "1"
+      ingredient_count ===
+        undefined ||
+      instruction_length ===
+        undefined
     ) {
-      return res.status(500).json({
-        error: "Invalid prediction output",
-        output: prediction,
+      return res.status(400).json({
+        error:
+          "ingredient_count dan instruction_length wajib diisi",
       });
     }
 
-    const category =
-      prediction === "1"
-        ? "makanan_berat"
-        : "makanan_ringan";
+    const ingredientCount =
+      Number(ingredient_count);
 
-    return res.status(200).json({
-      category,
-    });
-  } catch (error) {
-    console.error("Prediction error:", error);
+    const instructionLength =
+      Number(instruction_length);
 
-    return res.status(500).json({
-      error: "Prediction failed",
-    });
+    if (
+      !Number.isFinite(
+        ingredientCount
+      ) ||
+      !Number.isFinite(
+        instructionLength
+      )
+    ) {
+      return res.status(400).json({
+        error:
+          "ingredient_count dan instruction_length harus berupa angka",
+      });
+    }
+
+    try {
+      const results =
+        await PythonShell.run(
+          "ml/predict.py",
+          {
+            args: [
+              ingredientCount,
+              instructionLength,
+            ],
+          }
+        );
+
+      console.log(
+        "Python results:",
+        results
+      );
+
+      const prediction =
+        results?.[0]?.trim();
+
+      if (
+        prediction !== "0" &&
+        prediction !== "1"
+      ) {
+        return res.status(500).json({
+          error:
+            "Invalid prediction output",
+          output: prediction,
+        });
+      }
+
+      const category =
+        prediction === "1"
+          ? "makanan_berat"
+          : "makanan_ringan";
+
+      return res.status(200).json({
+        category,
+      });
+    } catch (error) {
+      console.error(
+        "Prediction error:",
+        error
+      );
+
+      return res.status(500).json({
+        error:
+          "Prediction failed",
+      });
+    }
   }
-});
+);
+
+// ==============================
+// START SERVER
+// ==============================
 
 app.listen(PORT, () => {
   console.log(
